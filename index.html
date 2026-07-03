@@ -1,0 +1,2243 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#05070d" />
+  <title>Carlisle — Task Orbit</title>
+  <style>
+    :root {
+      --bg: #05070d;
+      --bg2: #070b13;
+      --panel: rgba(12, 18, 30, 0.78);
+      --panel-strong: rgba(10, 14, 24, 0.94);
+      --panel-line: rgba(148, 172, 214, 0.14);
+      --text: #edf4ff;
+      --muted: #8b9ab7;
+      --soft: #c7d6f4;
+      --shadow: 0 24px 80px rgba(0,0,0,.44);
+      --accent: #73e6d8;
+      --accent2: #ffb166;
+      --accent3: #8c7bff;
+      --danger: #ff5e7d;
+      --warning: #ffc45c;
+      --ok: #55e0a4;
+      --radius: 22px;
+      --radius-lg: 30px;
+      --ease: cubic-bezier(.2,.8,.2,1);
+      --glass: linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.03));
+      --grid: rgba(170, 198, 255, 0.06);
+      --card-h: 144px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(1200px 900px at 20% 10%, rgba(91, 219, 202, 0.10), transparent 50%),
+        radial-gradient(1000px 700px at 80% 0%, rgba(140, 123, 255, 0.14), transparent 45%),
+        radial-gradient(1200px 900px at 50% 120%, rgba(255, 177, 102, 0.10), transparent 38%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+      color: var(--text);
+      font: 500 14px/1.35 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
+      letter-spacing: 0.01em;
+    }
+
+    button, input, textarea, select { font: inherit; }
+    button, input, textarea, select { outline: none; }
+    ::selection { background: rgba(115,230,216,.26); color: white; }
+
+    #app {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    #bgfx {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.95;
+    }
+
+    .vignette,
+    .scanlines,
+    .grid-overlay,
+    .grain {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .vignette {
+      z-index: 1;
+      background:
+        radial-gradient(circle at 50% 42%, transparent 10%, rgba(0,0,0,.12) 55%, rgba(0,0,0,.38) 100%),
+        radial-gradient(circle at 50% 50%, transparent 40%, rgba(0,0,0,.18) 100%);
+      mix-blend-mode: multiply;
+    }
+
+    .scanlines {
+      z-index: 2;
+      opacity: .12;
+      background-image: linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px);
+      background-size: 100% 4px;
+      mask-image: linear-gradient(180deg, transparent, black 8%, black 92%, transparent);
+    }
+
+    .grid-overlay {
+      z-index: 2;
+      background-image:
+        linear-gradient(to right, var(--grid) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(circle at 50% 52%, black 15%, transparent 82%);
+      opacity: .8;
+    }
+
+    .grain {
+      z-index: 3;
+      opacity: .10;
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+      mix-blend-mode: overlay;
+    }
+
+    .chrome {
+      position: relative;
+      z-index: 4;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      height: 100%;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 22px 26px 14px;
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .glyph {
+      width: 46px;
+      height: 46px;
+      border-radius: 16px;
+      background:
+        radial-gradient(circle at 30% 25%, rgba(255,255,255,.42), transparent 28%),
+        conic-gradient(from 210deg, rgba(115,230,216,.95), rgba(140,123,255,.9), rgba(255,177,102,.88), rgba(115,230,216,.95));
+      box-shadow: 0 0 0 1px rgba(255,255,255,.18) inset, 0 16px 38px rgba(115,230,216,.14), 0 10px 30px rgba(140,123,255,.18);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .glyph::after {
+      content: "";
+      position: absolute;
+      inset: 9px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.38);
+      box-shadow: 0 0 18px rgba(255,255,255,.10) inset;
+      transform: rotate(18deg);
+    }
+
+    .brand-copy {
+      min-width: 0;
+    }
+
+    .brand-copy h1 {
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: .24em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .brand-copy p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: .08em;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .pill,
+    .ghost,
+    .primary,
+    .chip,
+    .seg,
+    .icon-btn {
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(11, 15, 24, .62);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 11px 14px;
+      transition: transform .18s var(--ease), background .18s var(--ease), border-color .18s var(--ease), box-shadow .18s var(--ease), color .18s var(--ease);
+      box-shadow: 0 1px 0 rgba(255,255,255,.05) inset;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .pill:hover, .ghost:hover, .primary:hover, .chip:hover, .seg:hover, .icon-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255,255,255,.18);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.04) inset, 0 10px 24px rgba(0,0,0,.18);
+    }
+
+    .primary {
+      background: linear-gradient(135deg, rgba(115,230,216,.20), rgba(140,123,255,.22));
+      border-color: rgba(115,230,216,.35);
+      box-shadow: 0 0 0 1px rgba(115,230,216,.10) inset, 0 16px 34px rgba(115,230,216,.10);
+    }
+
+    .ghost {
+      color: var(--muted);
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(360px, .95fr);
+      gap: 18px;
+      padding: 0 18px 18px;
+      min-height: 0;
+    }
+
+    .stage,
+    .sidebar {
+      position: relative;
+      border-radius: 30px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: linear-gradient(180deg, rgba(10,15,24,.56), rgba(8,12,20,.72));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .stage {
+      padding: 18px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      min-width: 0;
+    }
+
+    .stage-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      position: relative;
+      z-index: 2;
+      margin-bottom: 12px;
+    }
+
+    .stage-title {
+      min-width: 0;
+      max-width: 72ch;
+    }
+
+    .kicker {
+      margin: 0 0 6px;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: .24em;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .stage-title h2 {
+      margin: 0;
+      font-size: clamp(28px, 3vw, 48px);
+      line-height: 1;
+      letter-spacing: -.045em;
+    }
+
+    .stage-title p {
+      margin: 12px 0 0;
+      max-width: 68ch;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .stage-hints {
+      display: grid;
+      gap: 8px;
+      min-width: 250px;
+      align-self: stretch;
+    }
+
+    .hint-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 11px 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      color: var(--soft);
+      white-space: nowrap;
+    }
+
+    .hint-row span:first-child { color: var(--muted); }
+
+    .stage-canvas-wrap {
+      position: relative;
+      min-height: 0;
+      border-radius: 26px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 48%, rgba(115,230,216,.08), transparent 32%),
+        radial-gradient(circle at 50% 52%, rgba(140,123,255,.10), transparent 46%),
+        linear-gradient(180deg, rgba(6, 11, 18, 0.72), rgba(7, 10, 16, 0.92));
+      border: 1px solid rgba(255,255,255,.08);
+    }
+
+    #stageCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .stage-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 50% 52%, transparent 8%, rgba(0,0,0,.08) 55%, rgba(0,0,0,.22) 100%);
+    }
+
+    .stage-footer {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .footer-pills {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mini {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 8px 11px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.04);
+    }
+
+    .sidebar {
+      display: grid;
+      grid-template-rows: auto auto auto 1fr auto;
+      gap: 14px;
+      padding: 16px;
+      min-width: 0;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat {
+      border-radius: 20px;
+      padding: 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+      border: 1px solid rgba(255,255,255,.08);
+      min-width: 0;
+    }
+
+    .stat .label {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      margin-bottom: 6px;
+    }
+
+    .stat .value {
+      font-size: 24px;
+      line-height: 1;
+      font-weight: 700;
+      letter-spacing: -.04em;
+    }
+
+    .stat .sub {
+      margin-top: 8px;
+      color: var(--soft);
+      font-size: 12px;
+    }
+
+    .controls {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 24px;
+      background: rgba(255,255,255,.035);
+      border: 1px solid rgba(255,255,255,.08);
+    }
+
+    .searchbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-radius: 18px;
+      padding: 11px 14px;
+      background: rgba(4,7,13,.68);
+      border: 1px solid rgba(255,255,255,.08);
+    }
+
+    .searchbar svg {
+      flex: 0 0 auto;
+      opacity: .62;
+    }
+
+    .searchbar input {
+      width: 100%;
+      background: transparent;
+      border: 0;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .searchbar input::placeholder { color: rgba(155, 170, 200, .6); }
+
+    .chip-row,
+    .seg-row,
+    .toolbar-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      padding: 9px 12px;
+      color: var(--muted);
+    }
+
+    .chip.active {
+      color: var(--text);
+      border-color: rgba(115,230,216,.34);
+      background: linear-gradient(135deg, rgba(115,230,216,.18), rgba(140,123,255,.14));
+    }
+
+    .seg {
+      padding: 9px 12px;
+      color: var(--muted);
+    }
+
+    .seg.active {
+      color: var(--text);
+      border-color: rgba(255,255,255,.18);
+      background: rgba(255,255,255,.08);
+    }
+
+    .task-list {
+      min-height: 0;
+      overflow: auto;
+      padding-right: 4px;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+      border-radius: 24px;
+    }
+
+    .task-list::-webkit-scrollbar,
+    textarea::-webkit-scrollbar,
+    input::-webkit-scrollbar { width: 10px; height: 10px; }
+    .task-list::-webkit-scrollbar-thumb,
+    textarea::-webkit-scrollbar-thumb,
+    input::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,.14);
+      border-radius: 999px;
+      border: 3px solid rgba(0,0,0,0);
+      background-clip: padding-box;
+    }
+
+    .task-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 12px;
+      align-items: start;
+      padding: 13px 14px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border: 1px solid rgba(255,255,255,.08);
+      cursor: grab;
+      transition: transform .18s var(--ease), border-color .18s var(--ease), background .18s var(--ease), box-shadow .18s var(--ease);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .task-item:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255,255,255,.16);
+      box-shadow: 0 10px 30px rgba(0,0,0,.18);
+    }
+
+    .task-item.selected {
+      border-color: rgba(115,230,216,.30);
+      background: linear-gradient(180deg, rgba(115,230,216,.12), rgba(255,255,255,.04));
+      box-shadow: 0 0 0 1px rgba(115,230,216,.08) inset, 0 12px 38px rgba(115,230,216,.06);
+    }
+
+    .task-item.dragging { opacity: .55; transform: scale(.99); }
+    .task-item.compact { opacity: .84; }
+
+    .task-check {
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.22);
+      background: rgba(8,12,18,.75);
+      margin-top: 2px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      cursor: pointer;
+    }
+
+    .task-check.done {
+      background: linear-gradient(135deg, rgba(85,224,164,.22), rgba(85,224,164,.06));
+      border-color: rgba(85,224,164,.42);
+    }
+
+    .task-body { min-width: 0; }
+    .task-title {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.35;
+      letter-spacing: -.01em;
+      word-break: break-word;
+    }
+    .task-title.done { text-decoration: line-through; color: rgba(210, 220, 240, .62); }
+    .task-meta {
+      margin-top: 6px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.07);
+      color: var(--soft);
+    }
+
+    .badge[data-priority="critical"] { color: #ffd0d8; border-color: rgba(255,94,125,.28); background: rgba(255,94,125,.08); }
+    .badge[data-priority="high"] { color: #ffe8c8; border-color: rgba(255,177,102,.26); background: rgba(255,177,102,.08); }
+    .badge[data-priority="med"] { color: #d4e2ff; border-color: rgba(115,230,216,.22); background: rgba(115,230,216,.07); }
+    .badge[data-priority="low"] { color: #c1f5e9; border-color: rgba(85,224,164,.18); background: rgba(85,224,164,.06); }
+
+    .task-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .task-actions .icon-btn {
+      padding: 8px 10px;
+      min-width: auto;
+      border-radius: 14px;
+      font-size: 12px;
+    }
+
+    .editor {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 24px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      min-width: 0;
+    }
+
+    .editor-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .editor-head h3 {
+      margin: 0;
+      font-size: 13px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .editor-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .field.full { grid-column: 1 / -1; }
+    .label {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+    }
+    .field input,
+    .field textarea,
+    .field select {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(5,8,14,.76);
+      color: var(--text);
+      border-radius: 16px;
+      padding: 12px 14px;
+      box-shadow: 0 1px 0 rgba(255,255,255,.03) inset;
+    }
+    .field textarea {
+      resize: none;
+      min-height: 96px;
+      line-height: 1.55;
+    }
+
+    .editor-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .editor-actions .left,
+    .editor-actions .right {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .hintline {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      padding: 0 2px;
+    }
+
+    .quickbar {
+      margin-top: 12px;
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+    }
+
+    .quickbar input {
+      width: 100%;
+      border-radius: 18px;
+      padding: 14px 16px;
+      background: rgba(7,10,16,.72);
+      border: 1px solid rgba(255,255,255,.10);
+      color: var(--text);
+    }
+
+    .quickbar input::placeholder { color: rgba(155,170,200,.54); }
+
+    .helpbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .kbd {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 26px;
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 7px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      font-size: 11px;
+      box-shadow: 0 1px 0 rgba(255,255,255,.04) inset;
+    }
+
+    .empty {
+      position: absolute;
+      inset: auto 24px 24px auto;
+      width: min(420px, calc(100% - 48px));
+      z-index: 5;
+      display: none;
+      padding: 18px 18px 16px;
+      border-radius: 24px;
+      border: 1px solid rgba(115,230,216,.20);
+      background: linear-gradient(180deg, rgba(10, 16, 27, .76), rgba(6, 10, 16, .92));
+      box-shadow: 0 24px 70px rgba(0,0,0,.35);
+      backdrop-filter: blur(18px);
+    }
+    .empty.show { display: block; }
+    .empty h3 {
+      margin: 0 0 8px;
+      font-size: 17px;
+      letter-spacing: -.02em;
+    }
+    .empty p { margin: 0; color: var(--muted); line-height: 1.55; }
+    .empty .actions { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .toast {
+      position: absolute;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%) translateY(24px);
+      z-index: 8;
+      opacity: 0;
+      pointer-events: none;
+      padding: 12px 16px;
+      border-radius: 999px;
+      background: rgba(7,10,16,.84);
+      border: 1px solid rgba(255,255,255,.10);
+      color: var(--text);
+      box-shadow: 0 20px 40px rgba(0,0,0,.28);
+      transition: opacity .2s var(--ease), transform .2s var(--ease);
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 1200px) {
+      body { overflow: auto; }
+      #app { height: auto; min-height: 100%; }
+      .chrome { min-height: 100vh; }
+      .shell { grid-template-columns: 1fr; }
+      .stage { min-height: 70vh; }
+      .sidebar { min-height: 60vh; }
+      .empty { position: static; width: auto; margin: 18px 0 0; }
+      .topbar { flex-direction: column; align-items: flex-start; }
+      .top-actions { justify-content: flex-start; }
+    }
+
+    @media (max-width: 720px) {
+      .topbar { padding: 16px 14px 12px; }
+      .shell { padding: 0 12px 12px; gap: 12px; }
+      .stage, .sidebar { border-radius: 24px; }
+      .stage-head { flex-direction: column; }
+      .stage-hints { min-width: 0; width: 100%; }
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .editor-grid { grid-template-columns: 1fr; }
+      .helpbar { gap: 10px; }
+      .quickbar { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+      }
+      .scanlines { opacity: .04; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <canvas id="bgfx"></canvas>
+    <div class="vignette"></div>
+    <div class="scanlines"></div>
+    <div class="grid-overlay"></div>
+    <div class="grain"></div>
+
+    <div class="chrome">
+      <header class="topbar">
+        <div class="brand">
+          <div class="glyph" aria-hidden="true"></div>
+          <div class="brand-copy">
+            <h1>Carlisle / Task Orbit</h1>
+            <p>Immersive task control · local-first · no backend</p>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button class="ghost" id="undoBtn" title="Undo last change (Ctrl/⌘+Z)">Undo</button>
+          <button class="ghost" id="exportBtn" title="Export tasks as JSON">Export</button>
+          <button class="ghost" id="importBtn" title="Import JSON backup">Import</button>
+          <button class="primary" id="newTaskBtn" title="Create a new task (N)">New task</button>
+        </div>
+      </header>
+
+      <main class="shell">
+        <section class="stage" aria-label="3D task stage">
+          <div class="stage-head">
+            <div class="stage-title">
+              <p class="kicker">Private control room</p>
+              <h2>Command your day in 3D.</h2>
+              <p>The center stage is a living task constellation. Click a floating card to inspect it, use the keyboard to move quickly, and keep everything local to your browser.</p>
+            </div>
+            <div class="stage-hints" aria-hidden="true">
+              <div class="hint-row"><span>Quick add syntax</span><span>`Title #tag !high @2026-07-10`</span></div>
+              <div class="hint-row"><span>Keyboard</span><span>N / / / Ctrl+Enter</span></div>
+              <div class="hint-row"><span>Scene</span><span>Click cards · drag list</span></div>
+            </div>
+          </div>
+
+          <div class="stage-canvas-wrap">
+            <canvas id="stageCanvas"></canvas>
+            <div class="stage-overlay"></div>
+          </div>
+
+          <div class="stage-footer">
+            <div class="footer-pills">
+              <span class="mini" id="sceneMode">WebGL scene active</span>
+              <span class="mini" id="storageMode">IndexedDB save enabled</span>
+              <span class="mini" id="motionMode">Motion: full</span>
+            </div>
+            <div id="statusLine">Ready.</div>
+          </div>
+        </section>
+
+        <aside class="sidebar">
+          <section class="stats" aria-label="Task statistics">
+            <div class="stat"><div class="label">Total</div><div class="value" id="statTotal">0</div><div class="sub" id="statTotalSub">tasks stored</div></div>
+            <div class="stat"><div class="label">Active</div><div class="value" id="statActive">0</div><div class="sub" id="statActiveSub">ready to do</div></div>
+            <div class="stat"><div class="label">Due soon</div><div class="value" id="statDueSoon">0</div><div class="sub" id="statDueSoonSub">next 3 days</div></div>
+            <div class="stat"><div class="label">Done</div><div class="value" id="statDone">0</div><div class="sub" id="statDoneSub">completed</div></div>
+          </section>
+
+          <section class="controls">
+            <div class="searchbar">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11 19a8 8 0 1 1 5.29-14.05A8 8 0 0 1 11 19Zm8.29 1.71-4.17-4.17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <input id="searchInput" placeholder="Search title, notes, tags…" />
+            </div>
+            <div class="chip-row" id="statusChips"></div>
+            <div class="seg-row" id="prioritySegs"></div>
+            <div class="toolbar-row">
+              <button class="chip" id="archiveToggle">Show archived</button>
+              <button class="chip" id="sortSmart">Smart sort</button>
+              <button class="chip" id="reducedMotionToggle">Motion on</button>
+            </div>
+          </section>
+
+          <section class="task-list" id="taskList" aria-label="Task list"></section>
+
+          <section class="editor" aria-label="Task editor">
+            <div class="editor-head">
+              <h3>Inspector</h3>
+              <span class="mini" id="editModeTag">Creating new</span>
+            </div>
+            <div class="editor-grid">
+              <label class="field full">
+                <span class="label">Title</span>
+                <input id="taskTitle" placeholder="A clear, decisive task title" />
+              </label>
+              <label class="field full">
+                <span class="label">Notes</span>
+                <textarea id="taskNotes" placeholder="Add the context, next action, or constraints."></textarea>
+              </label>
+              <label class="field">
+                <span class="label">Priority</span>
+                <select id="taskPriority">
+                  <option value="low">Low</option>
+                  <option value="med" selected>Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </label>
+              <label class="field">
+                <span class="label">Due date</span>
+                <input id="taskDue" type="date" />
+              </label>
+              <label class="field full">
+                <span class="label">Tags</span>
+                <input id="taskTags" placeholder="design, work, deep-focus" />
+              </label>
+            </div>
+            <div class="editor-actions">
+              <div class="left">
+                <button class="primary" id="saveBtn">Save</button>
+                <button class="ghost" id="completeBtn">Toggle done</button>
+              </div>
+              <div class="right">
+                <button class="ghost" id="archiveBtn">Archive</button>
+                <button class="ghost" id="deleteBtn">Delete</button>
+              </div>
+            </div>
+            <div class="hintline">Tip: quick add understands <span class="kbd">#tags</span>, <span class="kbd">!priority</span>, and <span class="kbd">@YYYY-MM-DD</span>.</div>
+          </section>
+
+          <section class="helpbar">
+            <div>Shortcuts: <span class="kbd">N</span> new · <span class="kbd">/</span> search · <span class="kbd">Space</span> complete · <span class="kbd">Ctrl/⌘+Z</span> undo</div>
+            <div id="selectionInfo">No task selected.</div>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <div class="empty" id="emptyState">
+      <h3>Your orbit is empty.</h3>
+      <p>Create a task to ignite the scene. It will appear as a floating 3D card with depth, motion, and quick-access editing.</p>
+      <div class="actions">
+        <button class="primary" id="emptyNewBtn">Create first task</button>
+        <button class="ghost" id="seedBtn">Load a tasteful starter set</button>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <input type="file" id="importFile" accept="application/json" class="hidden" />
+    <input id="quickAdd" class="quickbar hidden" aria-hidden="true" />
+  </div>
+
+    <script>
+    import('https://unpkg.com/three@0.185.1/build/three.module.min.js').then((THREE) => {
+      window.THREE = THREE;
+      window.__CARLISLE_DEBUG = window.__CARLISLE_DEBUG || { sceneReady: false, cardCount: 0, taskCount: 0 };
+      window.addEventListener('error', (e) => { try { window.__CARLISLE_DEBUG.error = e?.error?.stack || e?.message || 'unknown'; } catch (err) {} });
+      window.addEventListener('unhandledrejection', (e) => { try { window.__CARLISLE_DEBUG.error = e?.reason?.stack || String(e?.reason || 'rejection'); } catch (err) {} });
+
+      (function () {
+      const APP_KEY = 'carlisle.task-orbit.v1';
+      const SETTINGS_KEY = 'carlisle.task-orbit.settings.v1';
+      const HISTORY_LIMIT = 24;
+
+      const els = {
+        statusLine: document.getElementById('statusLine'),
+        taskList: document.getElementById('taskList'),
+        searchInput: document.getElementById('searchInput'),
+        statusChips: document.getElementById('statusChips'),
+        prioritySegs: document.getElementById('prioritySegs'),
+        archiveToggle: document.getElementById('archiveToggle'),
+        sortSmart: document.getElementById('sortSmart'),
+        reducedMotionToggle: document.getElementById('reducedMotionToggle'),
+        statTotal: document.getElementById('statTotal'),
+        statTotalSub: document.getElementById('statTotalSub'),
+        statActive: document.getElementById('statActive'),
+        statActiveSub: document.getElementById('statActiveSub'),
+        statDueSoon: document.getElementById('statDueSoon'),
+        statDueSoonSub: document.getElementById('statDueSoonSub'),
+        statDone: document.getElementById('statDone'),
+        statDoneSub: document.getElementById('statDoneSub'),
+        editModeTag: document.getElementById('editModeTag'),
+        selectionInfo: document.getElementById('selectionInfo'),
+        emptyState: document.getElementById('emptyState'),
+        toast: document.getElementById('toast'),
+        taskTitle: document.getElementById('taskTitle'),
+        taskNotes: document.getElementById('taskNotes'),
+        taskPriority: document.getElementById('taskPriority'),
+        taskDue: document.getElementById('taskDue'),
+        taskTags: document.getElementById('taskTags'),
+        saveBtn: document.getElementById('saveBtn'),
+        deleteBtn: document.getElementById('deleteBtn'),
+        completeBtn: document.getElementById('completeBtn'),
+        archiveBtn: document.getElementById('archiveBtn'),
+        newTaskBtn: document.getElementById('newTaskBtn'),
+        undoBtn: document.getElementById('undoBtn'),
+        exportBtn: document.getElementById('exportBtn'),
+        importBtn: document.getElementById('importBtn'),
+        importFile: document.getElementById('importFile'),
+        emptyNewBtn: document.getElementById('emptyNewBtn'),
+        seedBtn: document.getElementById('seedBtn'),
+        quickAdd: document.getElementById('quickAdd'),
+        sceneMode: document.getElementById('sceneMode'),
+        storageMode: document.getElementById('storageMode'),
+        motionMode: document.getElementById('motionMode')
+      };
+
+      const state = {
+        tasks: [],
+        selectedId: null,
+        draftId: null,
+        filter: 'all',
+        priorityFilter: 'all',
+        showArchived: false,
+        sortMode: 'smart',
+        search: '',
+        reducedMotion: window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+        history: [],
+        dirty: false,
+        draggingId: null,
+        lastToast: 0,
+        hasWebGL: true
+      };
+
+      window.__CARLISLE_DEBUG = { sceneReady: false, cardCount: 0, taskCount: 0 };
+
+      const qs = (sel, root = document) => root.querySelector(sel);
+      const qsa = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+      const uid = () => 't_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+      const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+      const pad2 = n => String(n).padStart(2, '0');
+      const todayISO = () => new Date().toISOString().slice(0, 10);
+      const copy = (v) => JSON.parse(JSON.stringify(v));
+
+      function toast(msg) {
+        const now = Date.now();
+        state.lastToast = now;
+        els.toast.textContent = msg;
+        els.toast.classList.add('show');
+        clearTimeout(toast._t);
+        toast._t = setTimeout(() => {
+          if (state.lastToast === now) els.toast.classList.remove('show');
+        }, 1800);
+      }
+
+      function status(msg) {
+        els.statusLine.textContent = msg;
+      }
+
+      function priorityRank(p) {
+        return ({ critical: 3, high: 2, med: 1, low: 0 }[p] ?? 1);
+      }
+
+      function priorityColor(priority) {
+        return ({ critical: '#ff5e7d', high: '#ffb166', med: '#73e6d8', low: '#55e0a4' }[priority] || '#73e6d8');
+      }
+
+      function parseTags(text) {
+        if (!text) return [];
+        return text.split(/[,#]/g).map(s => s.trim()).filter(Boolean);
+      }
+
+      function formatDateLabel(value) {
+        if (!value) return 'No due date';
+        const d = new Date(value + 'T00:00:00');
+        if (Number.isNaN(d.getTime())) return value;
+        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      }
+
+      function relativeDue(value) {
+        if (!value) return '';
+        const d = new Date(value + 'T00:00:00');
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const diff = Math.round((d - start) / 86400000);
+        if (diff === 0) return 'today';
+        if (diff === 1) return 'tomorrow';
+        if (diff > 1) return `in ${diff} days`;
+        if (diff === -1) return 'yesterday';
+        return `${Math.abs(diff)} days overdue`;
+      }
+
+      function isDueSoon(task) {
+        if (!task.due || task.completed || task.archived) return false;
+        const d = new Date(task.due + 'T00:00:00');
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const diff = Math.round((d - start) / 86400000);
+        return diff >= 0 && diff <= 3;
+      }
+
+      function isOverdue(task) {
+        if (!task.due || task.completed || task.archived) return false;
+        const d = new Date(task.due + 'T00:00:00');
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        return d < start;
+      }
+
+      function newTaskDraft() {
+        return {
+          id: uid(),
+          title: '',
+          notes: '',
+          priority: 'med',
+          due: '',
+          tags: [],
+          completed: false,
+          archived: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          order: 0
+        };
+      }
+
+      function seedTasks() {
+        const base = new Date();
+        const iso = days => new Date(base.getTime() + days * 86400000).toISOString().slice(0, 10);
+        return [
+          { ...newTaskDraft(), id: uid(), title: 'Ship the polished concept board', notes: 'Pair the scene with a concise spec and strong storytelling.', priority: 'critical', due: iso(2), tags: ['design', 'launch'], order: 0 },
+          { ...newTaskDraft(), id: uid(), title: 'Refine the motion language', notes: 'Keep transitions soft, tactile, and intentional.', priority: 'high', due: iso(3), tags: ['motion', 'ux'], order: 1 },
+          { ...newTaskDraft(), id: uid(), title: 'Prepare the browser QA checklist', notes: 'Validate WebGL, state persistence, import/export, and keyboard flow.', priority: 'med', due: iso(1), tags: ['qa', 'release'], order: 2 }
+        ];
+      }
+
+      function pushHistory(label = '') {
+        state.history.push({
+          tasks: copy(state.tasks),
+          selectedId: state.selectedId,
+          label
+        });
+        if (state.history.length > HISTORY_LIMIT) state.history.shift();
+      }
+
+      function undo() {
+        const snap = state.history.pop();
+        if (!snap) return toast('Nothing to undo.');
+        state.tasks = snap.tasks;
+        state.selectedId = snap.selectedId;
+        state.dirty = true;
+        persist();
+        syncDraft();
+        render();
+        toast('Undid last action.');
+        status('Undo restored the previous state.');
+      }
+
+      function sanitizeDraftFromInputs() {
+        return {
+          title: els.taskTitle.value.trim(),
+          notes: els.taskNotes.value.trim(),
+          priority: els.taskPriority.value,
+          due: els.taskDue.value,
+          tags: parseTags(els.taskTags.value),
+        };
+      }
+
+      function syncDraft() {
+        const task = state.tasks.find(t => t.id === state.selectedId) || state.draft;
+        state.draft = task ? copy(task) : newTaskDraft();
+        state.draftId = state.draft.id;
+        els.taskTitle.value = state.draft.title || '';
+        els.taskNotes.value = state.draft.notes || '';
+        els.taskPriority.value = state.draft.priority || 'med';
+        els.taskDue.value = state.draft.due || '';
+        els.taskTags.value = (state.draft.tags || []).join(', ');
+        els.editModeTag.textContent = state.selectedId ? 'Editing selected' : 'Creating new';
+        els.selectionInfo.textContent = state.selectedId ? `Selected: ${state.draft.title || 'Untitled task'}` : 'No task selected.';
+        els.completeBtn.textContent = state.draft.completed ? 'Mark active' : 'Toggle done';
+        els.archiveBtn.textContent = state.draft.archived ? 'Unarchive' : 'Archive';
+        els.deleteBtn.disabled = !state.selectedId && !state.draft.title;
+      }
+
+      function applyDraftToState() {
+        const payload = sanitizeDraftFromInputs();
+        if (!payload.title) {
+          toast('Add a title first.');
+          els.taskTitle.focus();
+          return false;
+        }
+        if (state.selectedId) {
+          const idx = state.tasks.findIndex(t => t.id === state.selectedId);
+          if (idx >= 0) {
+            pushHistory('edit');
+            state.tasks[idx] = {
+              ...state.tasks[idx],
+              ...payload,
+              updatedAt: new Date().toISOString()
+            };
+            state.selectedId = state.tasks[idx].id;
+          }
+        } else {
+          pushHistory('create');
+          const nextOrder = state.tasks.length ? Math.max(...state.tasks.map(t => t.order ?? 0)) + 1 : 0;
+          state.tasks.unshift({
+            ...newTaskDraft(),
+            ...payload,
+            id: uid(),
+            order: nextOrder,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          });
+          state.selectedId = state.tasks[0].id;
+        }
+        persist();
+        syncDraft();
+        render();
+        toast('Saved to your orbit.');
+        status('Task saved locally.');
+        return true;
+      }
+
+      function deleteSelected() {
+        if (!state.selectedId) {
+          if (!state.draft.title.trim()) return toast('Nothing to delete.');
+          els.taskTitle.value = '';
+          els.taskNotes.value = '';
+          els.taskTags.value = '';
+          els.taskDue.value = '';
+          els.taskPriority.value = 'med';
+          toast('Draft cleared.');
+          return;
+        }
+        const task = state.tasks.find(t => t.id === state.selectedId);
+        if (!task) return;
+        pushHistory('delete');
+        state.tasks = state.tasks.filter(t => t.id !== state.selectedId);
+        state.selectedId = state.tasks[0]?.id || null;
+        persist();
+        syncDraft();
+        render();
+        toast('Task deleted.');
+        status('Task removed.');
+      }
+
+      function toggleComplete(id = state.selectedId) {
+        if (!id) return;
+        const idx = state.tasks.findIndex(t => t.id === id);
+        if (idx < 0) return;
+        pushHistory('toggle');
+        state.tasks[idx].completed = !state.tasks[idx].completed;
+        state.tasks[idx].updatedAt = new Date().toISOString();
+        if (state.tasks[idx].completed) state.tasks[idx].archived = false;
+        persist();
+        syncDraft();
+        render();
+        toast(state.tasks[idx].completed ? 'Marked done.' : 'Marked active.');
+      }
+
+      function archiveSelected() {
+        if (!state.selectedId) return;
+        const idx = state.tasks.findIndex(t => t.id === state.selectedId);
+        if (idx < 0) return;
+        pushHistory('archive');
+        state.tasks[idx].archived = !state.tasks[idx].archived;
+        if (!state.tasks[idx].archived) state.tasks[idx].completed = false;
+        state.tasks[idx].updatedAt = new Date().toISOString();
+        persist();
+        syncDraft();
+        render();
+        toast(state.tasks[idx].archived ? 'Archived.' : 'Restored from archive.');
+      }
+
+      function selectTask(id) {
+        state.selectedId = id;
+        syncDraft();
+        render();
+        status('Focused a task in the scene.');
+      }
+
+      function setFilter(filter) {
+        state.filter = filter;
+        render();
+      }
+
+      function setPriorityFilter(filter) {
+        state.priorityFilter = filter;
+        render();
+      }
+
+      function compareTasks(a, b) {
+        const smart = state.sortMode === 'smart';
+        if (smart) {
+          const archivedA = a.archived ? 2 : 0;
+          const archivedB = b.archived ? 2 : 0;
+          if (archivedA !== archivedB) return archivedA - archivedB;
+          const completedA = a.completed ? 1 : 0;
+          const completedB = b.completed ? 1 : 0;
+          if (completedA !== completedB) return completedA - completedB;
+          const pr = priorityRank(b.priority) - priorityRank(a.priority);
+          if (pr) return pr;
+          const dueA = a.due ? new Date(a.due).getTime() : Infinity;
+          const dueB = b.due ? new Date(b.due).getTime() : Infinity;
+          if (dueA !== dueB) return dueA - dueB;
+          return (b.updatedAt || '').localeCompare(a.updatedAt || '');
+        }
+        return (a.order ?? 0) - (b.order ?? 0);
+      }
+
+      function passesFilters(task) {
+        if (!state.showArchived && task.archived) return false;
+        if (state.filter === 'active' && (task.completed || task.archived)) return false;
+        if (state.filter === 'done' && !task.completed) return false;
+        if (state.filter === 'archived' && !task.archived) return false;
+        if (state.priorityFilter !== 'all' && task.priority !== state.priorityFilter) return false;
+        const q = state.search.trim().toLowerCase();
+        if (q) {
+          const blob = [task.title, task.notes, (task.tags || []).join(' '), task.priority, task.due || ''].join(' ').toLowerCase();
+          if (!blob.includes(q)) return false;
+        }
+        return true;
+      }
+
+      function visibleTasks() {
+        return state.tasks.slice().sort(compareTasks).filter(passesFilters);
+      }
+
+      function stats() {
+        const total = state.tasks.filter(t => !t.archived).length;
+        const active = state.tasks.filter(t => !t.completed && !t.archived).length;
+        const dueSoon = state.tasks.filter(isDueSoon).length;
+        const done = state.tasks.filter(t => t.completed && !t.archived).length;
+        return { total, active, dueSoon, done };
+      }
+
+      function renderFilters() {
+        const statuses = [
+          ['all', 'All'],
+          ['active', 'Active'],
+          ['done', 'Done'],
+          ['archived', 'Archived']
+        ];
+        els.statusChips.innerHTML = statuses.map(([id, label]) => `<button class="chip ${state.filter === id ? 'active' : ''}" data-filter="${id}">${label}</button>`).join('');
+        const priorities = [
+          ['all', 'Any priority'],
+          ['critical', 'Critical'],
+          ['high', 'High'],
+          ['med', 'Medium'],
+          ['low', 'Low']
+        ];
+        els.prioritySegs.innerHTML = priorities.map(([id, label]) => `<button class="seg ${state.priorityFilter === id ? 'active' : ''}" data-priority-filter="${id}">${label}</button>`).join('');
+        els.archiveToggle.textContent = state.showArchived ? 'Hide archived' : 'Show archived';
+        els.sortSmart.textContent = state.sortMode === 'smart' ? 'Smart sort' : 'Manual order';
+        els.reducedMotionToggle.textContent = state.reducedMotion ? 'Motion off' : 'Motion on';
+      }
+
+      function renderStats() {
+        const s = stats();
+        els.statTotal.textContent = s.total;
+        els.statActive.textContent = s.active;
+        els.statDueSoon.textContent = s.dueSoon;
+        els.statDone.textContent = s.done;
+        els.statTotalSub.textContent = s.total === 1 ? 'task stored' : 'tasks stored';
+        els.statActiveSub.textContent = s.active === 1 ? 'ready to do' : 'ready to do';
+        els.statDueSoonSub.textContent = s.dueSoon === 1 ? 'next 3 days' : 'next 3 days';
+        els.statDoneSub.textContent = s.done === 1 ? 'completed' : 'completed';
+      }
+
+      function renderTaskList() {
+        const tasks = visibleTasks();
+        if (!tasks.length) {
+          els.taskList.innerHTML = '<div class="hintline" style="padding:18px 6px;">No tasks match the current filters.</div>';
+        } else {
+          els.taskList.innerHTML = tasks.map(task => {
+            const selected = task.id === state.selectedId;
+            const tags = (task.tags || []).slice(0, 3).map(t => `<span class="badge">#${escapeHtml(t)}</span>`).join('');
+            const due = task.due ? `<span class="badge">${escapeHtml(formatDateLabel(task.due))}${isOverdue(task) ? ' · overdue' : ''}${isDueSoon(task) ? ' · soon' : ''}</span>` : '';
+            return `
+              <article class="task-item ${selected ? 'selected' : ''} ${task.completed ? 'compact' : ''}" draggable="true" data-id="${task.id}">
+                <button class="task-check ${task.completed ? 'done' : ''}" data-action="toggle" title="${task.completed ? 'Mark active' : 'Mark done'}">${task.completed ? '✓' : ''}</button>
+                <div class="task-body">
+                  <h4 class="task-title ${task.completed ? 'done' : ''}">${escapeHtml(task.title || 'Untitled task')}</h4>
+                  <div class="task-meta">
+                    <span class="badge" data-priority="${task.priority}">${task.priority}</span>
+                    ${due}
+                    ${tags}
+                  </div>
+                </div>
+                <div class="task-actions">
+                  <button class="icon-btn" data-action="select">Open</button>
+                </div>
+              </article>`;
+          }).join('');
+        }
+        els.emptyState.classList.toggle('show', state.tasks.length === 0);
+      }
+
+      function renderSelectionInfo() {
+        if (!state.selectedId) {
+          els.selectionInfo.textContent = 'No task selected.';
+          return;
+        }
+        const task = state.tasks.find(t => t.id === state.selectedId);
+        if (!task) {
+          els.selectionInfo.textContent = 'No task selected.';
+          return;
+        }
+        const bits = [task.completed ? 'Done' : 'Active', task.archived ? 'Archived' : 'Live', task.due ? relativeDue(task.due) : 'No due date'];
+        els.selectionInfo.textContent = bits.join(' · ');
+      }
+
+      function render() {
+        renderFilters();
+        renderStats();
+        renderTaskList();
+        renderSelectionInfo();
+        syncDraftLabels();
+        updateSceneTargets();
+      }
+
+      function syncDraftLabels() {
+        els.sceneMode.textContent = state.hasWebGL ? 'WebGL scene active' : 'WebGL unavailable';
+        els.storageMode.textContent = 'IndexedDB save enabled';
+        els.motionMode.textContent = state.reducedMotion ? 'Motion: reduced' : 'Motion: full';
+      }
+
+      function escapeHtml(str) {
+        return String(str ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function parseQuickAdd(input) {
+        let text = input.trim();
+        if (!text) return null;
+        const task = newTaskDraft();
+        const tags = [];
+        const due = text.match(/@([0-9]{4}-[0-9]{2}-[0-9]{2})/);
+        if (due) {
+          task.due = due[1];
+          text = text.replace(due[0], '');
+        }
+        const pr = text.match(/!((?:critical)|(?:high)|(?:med)|(?:low)|(?:1)|(?:2)|(?:3)|(?:4))/i);
+        if (pr) {
+          const token = pr[1].toLowerCase();
+          task.priority = token === '1' || token === 'critical' ? 'critical' : token === '2' || token === 'high' ? 'high' : token === '4' || token === 'low' ? 'low' : 'med';
+          text = text.replace(pr[0], '');
+        }
+        text = text.replace(/#([\w-]+)/g, (_, tag) => {
+          tags.push(tag);
+          return '';
+        });
+        task.title = text.replace(/\s+/g, ' ').trim();
+        task.tags = tags;
+        return task.title ? task : null;
+      }
+
+      function quickAdd(text) {
+        const parsed = parseQuickAdd(text);
+        if (!parsed) return toast('Type a task title first.');
+        pushHistory('quick-add');
+        parsed.id = uid();
+        parsed.order = state.tasks.length ? Math.max(...state.tasks.map(t => t.order ?? 0)) + 1 : 0;
+        state.tasks.unshift(parsed);
+        state.selectedId = parsed.id;
+        persist();
+        syncDraft();
+        render();
+        toast('Task added.');
+        status('Task created from quick add.');
+        els.quickAdd.value = '';
+      }
+
+      // IndexedDB persistence
+      let dbPromise = null;
+      function openDB() {
+        if (dbPromise) return dbPromise;
+        dbPromise = new Promise((resolve, reject) => {
+          const req = indexedDB.open('carlisle-task-orbit', 1);
+          req.onupgradeneeded = () => {
+            const db = req.result;
+            if (!db.objectStoreNames.contains('tasks')) db.createObjectStore('tasks', { keyPath: 'id' });
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+        return dbPromise;
+      }
+
+      async function loadTasks() {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction('tasks', 'readonly');
+          const store = tx.objectStore('tasks');
+          const req = store.getAll();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      async function saveAllTasks(tasks) {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction('tasks', 'readwrite');
+          const store = tx.objectStore('tasks');
+          store.clear();
+          for (const task of tasks) store.put(task);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      }
+
+      async function clearDB() {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction('tasks', 'readwrite');
+          const store = tx.objectStore('tasks');
+          const req = store.clear();
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      async function persist() {
+        try {
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+            filter: state.filter,
+            priorityFilter: state.priorityFilter,
+            showArchived: state.showArchived,
+            sortMode: state.sortMode,
+            reducedMotion: state.reducedMotion,
+            search: state.search,
+            selectedId: state.selectedId
+          }));
+        } catch (e) {}
+        try {
+          await saveAllTasks(state.tasks);
+          state.dirty = false;
+        } catch (err) {
+          console.error(err);
+          status('Save failed; check console.');
+        }
+      }
+
+      async function loadState() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+          Object.assign(state, {
+            filter: saved.filter || 'all',
+            priorityFilter: saved.priorityFilter || 'all',
+            showArchived: !!saved.showArchived,
+            sortMode: saved.sortMode || 'smart',
+            reducedMotion: typeof saved.reducedMotion === 'boolean' ? saved.reducedMotion : state.reducedMotion,
+            search: saved.search || '',
+            selectedId: saved.selectedId || null
+          });
+        } catch (e) {}
+        try {
+          const loaded = await loadTasks();
+          state.tasks = loaded || [];
+        } catch (e) {
+          console.warn('DB load failed', e);
+          state.tasks = [];
+        }
+        if (!state.tasks.length) {
+          state.tasks = [];
+        }
+        els.searchInput.value = state.search;
+        if (!state.tasks.length && location.hash.includes('seed')) {
+          state.tasks = seedTasks();
+          state.selectedId = state.tasks[0].id;
+          await saveAllTasks(state.tasks);
+          toast('Starter set loaded.');
+        }
+        if (!state.selectedId && state.tasks.length) state.selectedId = state.tasks[0].id;
+        state.draft = copy(state.tasks.find(t => t.id === state.selectedId) || newTaskDraft());
+        syncDraft();
+        render();
+        status(state.tasks.length ? 'Workspace loaded.' : 'Ready for your first task.');
+      }
+
+      async function importJSON(file) {
+        try {
+          const text = await file.text();
+          const parsed = JSON.parse(text);
+          const list = Array.isArray(parsed) ? parsed : parsed.tasks;
+          if (!Array.isArray(list)) throw new Error('Invalid file format');
+          pushHistory('import');
+          state.tasks = list.map(t => ({ ...newTaskDraft(), ...t, id: t.id || uid(), tags: Array.isArray(t.tags) ? t.tags : parseTags(t.tags || '') }));
+          state.selectedId = state.tasks[0]?.id || null;
+          await persist();
+          syncDraft();
+          render();
+          toast('Import complete.');
+          status('JSON imported into local storage.');
+        } catch (err) {
+          console.error(err);
+          toast('Import failed.');
+          status('Import failed — verify the JSON shape.');
+        }
+      }
+
+      function exportJSON() {
+        const blob = new Blob([JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), tasks: state.tasks }, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `carlisle-task-orbit-${todayISO()}.json`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        toast('Export downloaded.');
+      }
+
+      function reorderTask(sourceId, targetId) {
+        if (!sourceId || !targetId || sourceId === targetId) return;
+        const tasks = state.tasks.slice();
+        const from = tasks.findIndex(t => t.id === sourceId);
+        const to = tasks.findIndex(t => t.id === targetId);
+        if (from < 0 || to < 0) return;
+        pushHistory('reorder');
+        const [moved] = tasks.splice(from, 1);
+        tasks.splice(to, 0, moved);
+        tasks.forEach((t, i) => { t.order = i; t.updatedAt = new Date().toISOString(); });
+        state.tasks = tasks;
+        persist();
+        render();
+        toast('Reordered.');
+      }
+
+      function installInteractions() {
+        els.statusChips.addEventListener('click', (e) => {
+          const btn = e.target.closest('[data-filter]');
+          if (!btn) return;
+          setFilter(btn.dataset.filter);
+          toast(`Filter: ${btn.textContent}`);
+        });
+        els.prioritySegs.addEventListener('click', (e) => {
+          const btn = e.target.closest('[data-priority-filter]');
+          if (!btn) return;
+          setPriorityFilter(btn.dataset.priorityFilter);
+          toast(`Priority: ${btn.textContent}`);
+        });
+        els.archiveToggle.addEventListener('click', () => {
+          state.showArchived = !state.showArchived;
+          persist();
+          render();
+          toast(state.showArchived ? 'Archived items visible.' : 'Archived items hidden.');
+        });
+        els.sortSmart.addEventListener('click', () => {
+          state.sortMode = state.sortMode === 'smart' ? 'manual' : 'smart';
+          persist();
+          render();
+          toast(state.sortMode === 'smart' ? 'Smart sort enabled.' : 'Manual order enabled.');
+        });
+        els.reducedMotionToggle.addEventListener('click', () => {
+          state.reducedMotion = !state.reducedMotion;
+          persist();
+          render();
+          toast(state.reducedMotion ? 'Reduced motion on.' : 'Reduced motion off.');
+        });
+
+        els.searchInput.addEventListener('input', () => {
+          state.search = els.searchInput.value;
+          persist();
+          render();
+        });
+
+        els.saveBtn.addEventListener('click', applyDraftToState);
+        els.deleteBtn.addEventListener('click', deleteSelected);
+        els.completeBtn.addEventListener('click', () => toggleComplete());
+        els.archiveBtn.addEventListener('click', archiveSelected);
+        els.newTaskBtn.addEventListener('click', () => newDraft());
+        els.emptyNewBtn.addEventListener('click', () => newDraft());
+        els.undoBtn.addEventListener('click', undo);
+        els.exportBtn.addEventListener('click', exportJSON);
+        els.importBtn.addEventListener('click', () => els.importFile.click());
+        els.importFile.addEventListener('change', () => {
+          if (els.importFile.files && els.importFile.files[0]) importJSON(els.importFile.files[0]);
+          els.importFile.value = '';
+        });
+        els.seedBtn.addEventListener('click', async () => {
+          pushHistory('seed');
+          state.tasks = seedTasks();
+          state.selectedId = state.tasks[0].id;
+          await persist();
+          syncDraft();
+          render();
+          toast('Starter set loaded.');
+        });
+
+        els.taskList.addEventListener('click', (e) => {
+          const item = e.target.closest('.task-item');
+          if (!item) return;
+          const id = item.dataset.id;
+          if (e.target.closest('[data-action="toggle"]')) {
+            toggleComplete(id);
+            return;
+          }
+          if (e.target.closest('[data-action="select"]') || item) {
+            selectTask(id);
+          }
+        });
+
+        let dragSourceId = null;
+        els.taskList.addEventListener('dragstart', (e) => {
+          const item = e.target.closest('.task-item');
+          if (!item) return;
+          dragSourceId = item.dataset.id;
+          state.draggingId = dragSourceId;
+          item.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        els.taskList.addEventListener('dragend', () => {
+          state.draggingId = null;
+          qsa('.task-item.dragging', els.taskList).forEach(el => el.classList.remove('dragging'));
+        });
+        els.taskList.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          const over = e.target.closest('.task-item');
+          if (!over || !dragSourceId) return;
+          const targetId = over.dataset.id;
+          if (targetId === dragSourceId) return;
+          const sourceIndex = state.tasks.findIndex(t => t.id === dragSourceId);
+          const targetIndex = state.tasks.findIndex(t => t.id === targetId);
+          if (sourceIndex < 0 || targetIndex < 0) return;
+          if (state.sortMode !== 'manual') return;
+          const rect = over.getBoundingClientRect();
+          const insertBefore = e.clientY < rect.top + rect.height / 2;
+          const list = state.tasks.slice();
+          const [moved] = list.splice(sourceIndex, 1);
+          const newIndex = insertBefore ? targetIndex : targetIndex + 1;
+          list.splice(clamp(newIndex, 0, list.length), 0, moved);
+          state.tasks = list;
+          state.tasks.forEach((t, i) => t.order = i);
+          render();
+        });
+        els.taskList.addEventListener('drop', async (e) => {
+          e.preventDefault();
+          if (dragSourceId && state.sortMode === 'manual') {
+            pushHistory('reorder');
+            await persist();
+            toast('Order updated.');
+          }
+          dragSourceId = null;
+        });
+
+        [els.taskTitle, els.taskNotes, els.taskPriority, els.taskDue, els.taskTags].forEach(input => {
+          input.addEventListener('input', () => {
+            const draft = sanitizeDraftFromInputs();
+            state.draft = { ...state.draft, ...draft };
+            state.dirty = true;
+          });
+        });
+
+        els.taskTitle.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            applyDraftToState();
+          }
+        });
+
+        document.addEventListener('keydown', (e) => {
+          const activeTag = document.activeElement && document.activeElement.tagName;
+          if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+            e.preventDefault();
+            undo();
+            return;
+          }
+          if (e.key === '/' && activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
+            e.preventDefault();
+            els.searchInput.focus();
+            return;
+          }
+          if ((e.key === 'n' || e.key === 'N') && activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
+            e.preventDefault();
+            newDraft();
+            return;
+          }
+          if (e.key === 'Escape') {
+            if (document.activeElement === els.searchInput) {
+              els.searchInput.blur();
+            }
+          }
+          if (e.key === ' ' && activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
+            e.preventDefault();
+            toggleComplete();
+          }
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
+            e.preventDefault();
+            applyDraftToState();
+          }
+          if (e.key === 'ArrowUp' && activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
+            e.preventDefault();
+            selectAdjacent(-1);
+          }
+          if (e.key === 'ArrowDown' && activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
+            e.preventDefault();
+            selectAdjacent(1);
+          }
+        });
+      }
+
+      function newDraft() {
+        state.selectedId = null;
+        state.draft = newTaskDraft();
+        syncDraft();
+        els.taskTitle.focus();
+        render();
+        toast('New task draft ready.');
+      }
+
+      function selectAdjacent(dir) {
+        const tasks = visibleTasks();
+        if (!tasks.length) return;
+        const idx = Math.max(0, tasks.findIndex(t => t.id === state.selectedId));
+        const next = tasks[clamp(idx + dir, 0, tasks.length - 1)];
+        if (next) selectTask(next.id);
+      }
+
+      // Three.js scene
+      let renderer, scene, camera, raycaster, pointer;
+      let stageRect = { width: 1, height: 1 };
+      let cardMeshes = [];
+      let cardGroup;
+      let coreGroup;
+      let particles;
+      let clock = new THREE.Clock();
+      let targetCamera = { x: 0, y: 1.2, z: 9.5 };
+      let cameraFocus = { x: 0, y: 0.6, z: 0 };
+      let subtleTick = 0;
+      let corePulse = 0;
+      let webglOk = true;
+
+      function initScene() {
+        const canvas = document.getElementById('stageCanvas');
+        try {
+          renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+        } catch (e) {
+          webglOk = false;
+          state.hasWebGL = false;
+          els.sceneMode.textContent = 'WebGL unavailable';
+          els.stageCanvasFallback = true;
+          return;
+        }
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.setSize(canvas.clientWidth || canvas.parentElement.clientWidth, canvas.clientHeight || canvas.parentElement.clientHeight, false);
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x05070d, 0.072);
+        camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+        camera.position.set(0, 1.25, 9.5);
+        raycaster = new THREE.Raycaster();
+        pointer = new THREE.Vector2();
+
+        const ambient = new THREE.AmbientLight(0xffffff, 1.18);
+        scene.add(ambient);
+        const key = new THREE.DirectionalLight(0x9fffe8, 1.85);
+        key.position.set(-4, 6, 5);
+        scene.add(key);
+        const rim = new THREE.DirectionalLight(0xb98cff, 1.0);
+        rim.position.set(4, 2, -3);
+        scene.add(rim);
+        const warm = new THREE.PointLight(0xffb166, 2.1, 22, 1.5);
+        warm.position.set(0, -1.5, 4);
+        scene.add(warm);
+
+        const grid = new THREE.GridHelper(32, 40, 0x35506d, 0x152236);
+        grid.material.transparent = true;
+        grid.material.opacity = 0.16;
+        grid.position.y = -2.8;
+        scene.add(grid);
+
+        coreGroup = new THREE.Group();
+        scene.add(coreGroup);
+
+        const centerSphere = new THREE.Mesh(
+          new THREE.SphereGeometry(0.95, 42, 42),
+          new THREE.MeshStandardMaterial({
+            color: 0x0d1826,
+            emissive: 0x162b38,
+            emissiveIntensity: 1.5,
+            metalness: 0.4,
+            roughness: 0.3
+          })
+        );
+        coreGroup.add(centerSphere);
+
+        const coreRing = new THREE.Mesh(
+          new THREE.TorusGeometry(1.55, 0.045, 18, 120),
+          new THREE.MeshStandardMaterial({ color: 0x73e6d8, emissive: 0x73e6d8, emissiveIntensity: 0.9, metalness: 0.3, roughness: 0.2 })
+        );
+        coreRing.rotation.x = Math.PI * 0.48;
+        coreGroup.add(coreRing);
+
+        const coreRing2 = new THREE.Mesh(
+          new THREE.TorusGeometry(2.0, 0.03, 18, 160),
+          new THREE.MeshStandardMaterial({ color: 0xffb166, emissive: 0xffb166, emissiveIntensity: 0.6, metalness: 0.2, roughness: 0.3 })
+        );
+        coreRing2.rotation.y = Math.PI * 0.28;
+        coreGroup.add(coreRing2);
+
+        const coreHalo = new THREE.Mesh(
+          new THREE.RingGeometry(1.3, 2.8, 80),
+          new THREE.MeshBasicMaterial({ color: 0x8c7bff, transparent: true, opacity: 0.08, side: THREE.DoubleSide })
+        );
+        coreHalo.rotation.x = -Math.PI / 2;
+        coreHalo.position.y = -1.5;
+        coreGroup.add(coreHalo);
+
+        cardGroup = new THREE.Group();
+        scene.add(cardGroup);
+
+        const particleGeo = new THREE.BufferGeometry();
+        const pts = [];
+        for (let i = 0; i < 220; i++) {
+          const r = 14 + Math.random() * 20;
+          const t = Math.random() * Math.PI * 2;
+          const y = (Math.random() - 0.5) * 10;
+          pts.push(Math.cos(t) * r, y, Math.sin(t) * r);
+        }
+        particleGeo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+        particles = new THREE.Points(
+          particleGeo,
+          new THREE.PointsMaterial({ color: 0xc9ddff, size: 0.04, transparent: true, opacity: 0.45 })
+        );
+        scene.add(particles);
+
+        canvas.addEventListener('pointermove', onPointerMove);
+        canvas.addEventListener('pointerdown', onPointerDown);
+        canvas.addEventListener('pointerleave', () => { pointer.x = 99; pointer.y = 99; });
+        window.addEventListener('resize', resizeScene);
+        resizeScene();
+        window.__CARLISLE_DEBUG.sceneReady = true;
+        animate();
+      }
+
+      function resizeScene() {
+        const wrap = document.querySelector('.stage-canvas-wrap');
+        if (!wrap || !renderer) return;
+        const r = wrap.getBoundingClientRect();
+        stageRect = { width: r.width, height: r.height };
+        renderer.setSize(r.width, r.height, false);
+        camera.aspect = r.width / r.height;
+        camera.updateProjectionMatrix();
+      }
+
+      function onPointerMove(ev) {
+        const r = renderer.domElement.getBoundingClientRect();
+        pointer.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
+        pointer.y = -(((ev.clientY - r.top) / r.height) * 2 - 1);
+      }
+
+      function onPointerDown(ev) {
+        if (!webglOk) return;
+        const r = renderer.domElement.getBoundingClientRect();
+        pointer.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
+        pointer.y = -(((ev.clientY - r.top) / r.height) * 2 - 1);
+        raycaster.setFromCamera(pointer, camera);
+        const intersects = raycaster.intersectObjects(cardMeshes, false);
+        if (intersects.length) {
+          const mesh = intersects[0].object;
+          const id = mesh.userData.id;
+          if (id) {
+            selectTask(id);
+            toast('Task focused in the scene.');
+          }
+        }
+      }
+
+      function makeCardTexture(task, selected = false) {
+        const c = document.createElement('canvas');
+        c.width = 1024;
+        c.height = 512;
+        const ctx = c.getContext('2d');
+        const w = c.width, h = c.height;
+        const pr = task.priority || 'med';
+        const accent = priorityColor(pr);
+        const glow = selected ? 0.94 : 0.78;
+        const bg = ctx.createLinearGradient(0, 0, w, h);
+        bg.addColorStop(0, 'rgba(14, 24, 37, 0.95)');
+        bg.addColorStop(1, 'rgba(7, 10, 15, 0.98)');
+        ctx.fillStyle = bg;
+        roundRect(ctx, 16, 16, w - 32, h - 32, 44);
+        ctx.fill();
+
+        const grad = ctx.createLinearGradient(0, 0, w, h);
+        grad.addColorStop(0, hexToRgba(accent, 0.24));
+        grad.addColorStop(1, 'rgba(255,255,255,0.02)');
+        ctx.fillStyle = grad;
+        roundRect(ctx, 16, 16, w - 32, h - 32, 44);
+        ctx.fill();
+
+        ctx.save();
+        ctx.globalAlpha = 0.8;
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.lineWidth = 2;
+        roundRect(ctx, 18, 18, w - 36, h - 36, 42);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.save();
+        ctx.globalAlpha = selected ? 1 : 0.65;
+        ctx.shadowColor = accent;
+        ctx.shadowBlur = selected ? 34 : 18;
+        ctx.fillStyle = accent;
+        roundRect(ctx, 18, 18, 16, h - 36, 8);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.fillStyle = 'rgba(255,255,255,0.10)';
+        roundRect(ctx, 42, 44, w - 84, 10, 5);
+        ctx.fill();
+        ctx.fillStyle = accent;
+        roundRect(ctx, 42, 44, Math.max(130, (w - 84) * (selected ? 0.72 : 0.45)), 10, 5);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.fillStyle = 'rgba(255,255,255,0.94)';
+        ctx.font = '700 48px Inter, system-ui, sans-serif';
+        wrapText(ctx, task.title || 'Untitled task', 44, 118, w - 88, 58, 2);
+
+        ctx.fillStyle = 'rgba(215, 228, 247, 0.82)';
+        ctx.font = '400 28px Inter, system-ui, sans-serif';
+        wrapText(ctx, task.notes || 'No notes yet — this task is ready for details.', 44, 222, w - 88, 34, 3);
+
+        const bottomY = 394;
+        pill(ctx, 44, bottomY, 170, 42, accent, task.priority.toUpperCase());
+        if (task.due) {
+          pill(ctx, 228, bottomY, 182, 42, 'rgba(255,255,255,0.14)', formatDateLabel(task.due));
+        } else {
+          pill(ctx, 228, bottomY, 182, 42, 'rgba(255,255,255,0.09)', 'No due date');
+        }
+        pill(ctx, 424, bottomY, 170, 42, 'rgba(255,255,255,0.09)', task.completed ? 'DONE' : task.archived ? 'ARCHIVED' : 'ACTIVE');
+
+        const tags = (task.tags || []).slice(0, 4);
+        ctx.font = '600 24px Inter, system-ui, sans-serif';
+        let tx = 44;
+        let ty = 468;
+        for (const tag of tags) {
+          const tw = ctx.measureText(`#${tag}`).width + 36;
+          pill(ctx, tx, ty, tw, 30, 'rgba(255,255,255,0.08)', `#${tag}`, 20);
+          tx += tw + 10;
+        }
+
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.font = '500 22px Inter, system-ui, sans-serif';
+        ctx.fillText(task.completed ? 'Completed task' : 'Live task', 856, 470);
+
+        const texture = new THREE.CanvasTexture(c);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.needsUpdate = true;
+        return texture;
+      }
+
+      function roundRect(ctx, x, y, w, h, r) {
+        if (ctx.roundRect) {
+          ctx.beginPath();
+          ctx.roundRect(x, y, w, h, r);
+          return;
+        }
+        const rr = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rr, y);
+        ctx.arcTo(x + w, y, x + w, y + h, rr);
+        ctx.arcTo(x + w, y + h, x, y + h, rr);
+        ctx.arcTo(x, y + h, x, y, rr);
+        ctx.arcTo(x, y, x + w, y, rr);
+        ctx.closePath();
+      }
+
+      function hexToRgba(hex, alpha) {
+        const n = hex.replace('#', '');
+        const val = n.length === 3 ? n.split('').map(v => v + v).join('') : n;
+        const int = parseInt(val, 16);
+        const r = (int >> 16) & 255;
+        const g = (int >> 8) & 255;
+        const b = int & 255;
+        return `rgba(${r},${g},${b},${alpha})`;
+      }
+
+      function pill(ctx, x, y, w, h, fill, text, radius = 20) {
+        ctx.save();
+        ctx.fillStyle = fill;
+        roundRect(ctx, x, y, w, h, radius);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.font = '700 22px Inter, system-ui, sans-serif';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, x + 14, y + h / 2 + 1);
+        ctx.restore();
+      }
+
+      function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines = 3) {
+        const words = String(text).split(/\s+/);
+        let line = '';
+        let lines = 0;
+        for (let i = 0; i < words.length; i++) {
+          const test = line ? line + ' ' + words[i] : words[i];
+          if (ctx.measureText(test).width > maxWidth && line) {
+            ctx.fillText(line, x, y);
+            line = words[i];
+            y += lineHeight;
+            lines++;
+            if (lines >= maxLines - 1) {
+              break;
+            }
+          } else {
+            line = test;
+          }
+        }
+        if (line) ctx.fillText(line, x, y);
+      }
+
+      function updateSceneTargets() {
+        if (!cardGroup || !scene) return;
+        const tasks = visibleTasks();
+        const selected = state.tasks.find(t => t.id === state.selectedId) || null;
+        cardMeshes.forEach(mesh => {
+          if (mesh.material.map) mesh.material.map.dispose();
+          mesh.material.dispose();
+          mesh.geometry.dispose();
+        });
+        cardMeshes = [];
+        while (cardGroup.children.length) cardGroup.remove(cardGroup.children[0]);
+        const count = tasks.length;
+        const radius = clamp(4.1 + count * 0.18, 4.25, 6.7);
+        const step = count ? (Math.PI * 2) / Math.max(count, 1) : Math.PI * 2;
+        window.__CARLISLE_DEBUG.taskCount = tasks.length;
+        tasks.forEach((task, i) => {
+          const tex = makeCardTexture(task, selected && task.id === selected.id);
+          const material = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: task.archived ? 0.46 : 1 });
+          const geometry = new THREE.PlaneGeometry(3.45, 1.78, 1, 1);
+          const mesh = new THREE.Mesh(geometry, material);
+          mesh.userData.id = task.id;
+          mesh.userData.task = task;
+          const isSelected = selected && selected.id === task.id;
+          const baseY = task.completed ? -1.2 : 0.15;
+          const zLift = isSelected ? 0.6 : 0;
+          const angle = i * step + subtleTick * 0.18;
+          mesh.position.set(Math.cos(angle) * radius, baseY + Math.sin(i * 1.2 + subtleTick * 1.4) * 0.22, Math.sin(angle) * radius * 0.58 + zLift);
+          mesh.rotation.y = -angle + Math.PI * 0.5;
+          mesh.rotation.x = 0.04 * Math.sin(i + subtleTick);
+          const scale = isSelected ? 1.18 : 1;
+          mesh.scale.setScalar(scale);
+          if (task.completed) mesh.scale.multiplyScalar(0.88);
+          if (task.archived) mesh.scale.multiplyScalar(0.82);
+          cardMeshes.push(mesh);
+          cardGroup.add(mesh);
+
+          const glow = new THREE.Mesh(
+            new THREE.PlaneGeometry(4.0, 2.1),
+            new THREE.MeshBasicMaterial({ color: new THREE.Color(priorityColor(task.priority)), transparent: true, opacity: isSelected ? 0.18 : 0.08, side: THREE.DoubleSide })
+          );
+          glow.position.copy(mesh.position);
+          glow.rotation.copy(mesh.rotation);
+          glow.position.z -= 0.02;
+          glow.userData.glow = true;
+          cardGroup.add(glow);
+        });
+
+        window.__CARLISLE_DEBUG.cardCount = cardMeshes.length;
+        if (selected) {
+          cameraFocus.x = 0;
+          cameraFocus.y = selected.completed ? -0.25 : 0.2;
+          cameraFocus.z = 0;
+          targetCamera.x = 0;
+          targetCamera.y = 1.0;
+          targetCamera.z = state.reducedMotion ? 8.1 : 7.5;
+        } else {
+          cameraFocus.x = 0;
+          cameraFocus.y = 0.4;
+          cameraFocus.z = 0;
+          targetCamera.x = 0;
+          targetCamera.y = 1.25;
+          targetCamera.z = 8.8;
+        }
+      }
+
+      function animate() {
+        if (!renderer || !scene || !camera) return;
+        requestAnimationFrame(animate);
+        const dt = Math.min(clock.getDelta(), 0.033);
+        subtleTick += dt * (state.reducedMotion ? 0.2 : 1);
+        corePulse += dt;
+        if (particles) {
+          particles.rotation.y += dt * 0.025;
+          particles.rotation.x += dt * 0.01;
+        }
+        if (coreGroup) {
+          coreGroup.rotation.y += dt * (state.reducedMotion ? 0.06 : 0.16);
+          coreGroup.rotation.x = Math.sin(corePulse * 0.8) * 0.1;
+          coreGroup.rotation.z = Math.sin(corePulse * 0.53) * 0.04;
+        }
+        if (cardGroup) {
+          cardGroup.rotation.y += dt * (state.reducedMotion ? 0.01 : 0.04);
+          cardGroup.rotation.x = Math.sin(corePulse * 0.14) * 0.05;
+        }
+        camera.position.x += (targetCamera.x - camera.position.x) * 0.04;
+        camera.position.y += (targetCamera.y - camera.position.y) * 0.04;
+        camera.position.z += (targetCamera.z - camera.position.z) * 0.04;
+        const selected = state.tasks.find(t => t.id === state.selectedId) || null;
+        if (selected) {
+          const idx = visibleTasks().findIndex(t => t.id === selected.id);
+          if (idx >= 0 && cardMeshes[idx]) {
+            const mesh = cardMeshes[idx];
+            const desired = selected.completed ? 0.55 : 0.85;
+            mesh.scale.lerp(new THREE.Vector3(desired * 1.18, desired * 1.18, desired * 1.18), 0.08);
+          }
+        }
+        camera.lookAt(cameraFocus.x, cameraFocus.y, cameraFocus.z);
+        renderer.render(scene, camera);
+      }
+
+      function escapeMaybe(s) { return String(s ?? ''); }
+
+      function updateStageIfWebGLDisabled() {
+        if (webglOk) return;
+        const wrap = document.querySelector('.stage-canvas-wrap');
+        if (!wrap) return;
+        wrap.innerHTML = '<div style="position:absolute;inset:0;display:grid;place-items:center;padding:24px;color:#d7e3fa;background:linear-gradient(180deg,rgba(8,12,18,.88),rgba(4,7,13,.96));"><div style="max-width:34rem;"><div style="text-transform:uppercase;letter-spacing:.24em;font-size:11px;color:#73e6d8;margin-bottom:12px;">Fallback mode</div><h3 style="margin:0 0 10px;font-size:32px;letter-spacing:-.04em;">3D scene unavailable.</h3><p style="margin:0;color:#8b9ab7;line-height:1.65;">Your browser or hardware blocked WebGL. The app still works as a premium local task tracker, but the immersive stage is reduced to a static presentation.</p></div></div>';
+      }
+
+      function init() {
+        installInteractions();
+        state.draft = newTaskDraft();
+        loadState().then(() => {
+          syncDraft();
+          if (state.search) els.searchInput.value = state.search;
+          syncDraftLabels();
+          if (typeof THREE !== 'undefined') initScene();
+          else {
+            webglOk = false;
+            state.hasWebGL = false;
+            updateStageIfWebGLDisabled();
+          }
+          render();
+          updateSceneTargets();
+          updateStageIfWebGLDisabled();
+        });
+      }
+
+      window.addEventListener('beforeunload', () => {
+        try { localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+          filter: state.filter,
+          priorityFilter: state.priorityFilter,
+          showArchived: state.showArchived,
+          sortMode: state.sortMode,
+          reducedMotion: state.reducedMotion,
+          search: state.search,
+          selectedId: state.selectedId
+        })); } catch (e) {}
+      });
+
+      init();
+    })();
+    }).catch((err) => {
+      console.error(err);
+      const line = document.getElementById('statusLine');
+      if (line) line.textContent = '3D loader failed.';
+      const mode = document.getElementById('sceneMode');
+      if (mode) mode.textContent = '3D loader failed';
+    });
+  </script>
+</body>
+</html>
