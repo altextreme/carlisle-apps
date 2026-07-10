@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What Breed Are You — Field Diagnostic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #16140f;
+    --card: #211d16;
+    --card-line: #3a352b;
+    --paper: #f0e9dc;
+    --ink: #16140f;
+    --crimson: #b8392f;
+    --gold: #c9a227;
+    --muted: #9a9382;
+    --green: #4f6b4a;
+  }
+  *{ box-sizing: border-box; }
+  html, body{ margin:0; padding:0; }
+  body{
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(201,162,39,0.06), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(184,57,47,0.07), transparent 45%);
+    color: var(--paper);
+    font-family: 'Archivo', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 32px 16px 64px;
+  }
+  .stamp-font{ font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.03em; }
+  .mono{ font-family: 'IBM Plex Mono', monospace; }
+
+  .sheet{
+    width: 100%;
+    max-width: 560px;
+    background: var(--card);
+    border: 1px solid var(--card-line);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.6);
+  }
+  .sheet::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image: repeating-linear-gradient(0deg, rgba(240,233,220,0.015) 0px, rgba(240,233,220,0.015) 1px, transparent 1px, transparent 3px);
+    pointer-events:none;
+  }
+
+  header.topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 16px 20px;
+    border-bottom: 1px dashed var(--card-line);
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .case-no{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--gold);
+  }
+
+  .content{ padding: 28px 24px 32px; position: relative; }
+
+  /* INTRO */
+  #intro h1{
+    font-family:'Bebas Neue', sans-serif;
+    font-size: 52px;
+    line-height: 0.95;
+    letter-spacing: 0.01em;
+    margin: 4px 0 6px;
+    color: var(--paper);
+  }
+  #intro h1 span{ color: var(--crimson); }
+  #intro p.sub{
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.55;
+    margin: 0 0 22px;
+    max-width: 44ch;
+  }
+  .breed-strip{
+    display:flex; flex-wrap:wrap; gap:6px;
+    margin-bottom: 26px;
+  }
+  .breed-chip{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border: 1px solid var(--card-line);
+    padding: 4px 8px;
+    border-radius: 2px;
+  }
+  .btn{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: var(--crimson);
+    color: #fff2ee;
+    border: none;
+    padding: 14px 22px;
+    border-radius: 2px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.12s ease, background 0.12s ease;
+  }
+  .btn:hover{ background:#a22f26; transform: translateY(-1px); }
+  .btn:active{ transform: translateY(0); }
+  .btn.ghost{
+    background: transparent;
+    color: var(--paper);
+    border: 1px solid var(--card-line);
+  }
+  .btn.ghost:hover{ background: rgba(240,233,220,0.05); }
+  .btn.small{ padding: 10px 16px; font-size: 12px; }
+
+  /* PROGRESS */
+  .progress-row{
+    display:flex; align-items:center; gap: 10px;
+    margin-bottom: 22px;
+  }
+  .progress-track{
+    flex:1; height: 3px; background: var(--card-line); position: relative; border-radius: 2px; overflow:hidden;
+  }
+  .progress-fill{
+    position:absolute; left:0; top:0; height:100%;
+    background: linear-gradient(90deg, var(--gold), var(--crimson));
+    width: 0%;
+    transition: width 0.35s ease;
+  }
+  .progress-count{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* QUESTION */
+  #quiz{ display:none; }
+  .q-tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  #q-text{
+    font-family:'Bebas Neue', sans-serif;
+    font-size: 30px;
+    line-height: 1.05;
+    margin: 0 0 18px;
+    max-width: 26ch;
+  }
+  .options{ display:flex; flex-direction:column; gap: 8px; }
+  .option{
+    text-align:left;
+    background: rgba(240,233,220,0.03);
+    border: 1px solid var(--card-line);
+    color: var(--paper);
+    padding: 14px 16px;
+    border-radius: 2px;
+    font-size: 14.5px;
+    font-family: 'Archivo', sans-serif;
+    cursor: pointer;
+    transition: border-color 0.12s ease, background 0.12s ease, transform 0.08s ease;
+    display:flex;
+    align-items:center;
+    gap: 12px;
+  }
+  .option .k{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    border: 1px solid var(--card-line);
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .option:hover{ border-color: var(--gold); background: rgba(201,162,39,0.06); transform: translateX(2px); }
+  .option:hover .k{ border-color: var(--gold); color: var(--gold); }
+
+  .nav-row{ display:flex; justify-content:space-between; margin-top: 22px; }
+  .back-link{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    background:none; border:none; cursor:pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    padding: 6px 0;
+  }
+  .back-link:disabled{ opacity:0; pointer-events:none; }
+
+  /* RESULTS */
+  #results{ display:none; }
+  .seal{
+    width: 96px; height: 96px;
+    border-radius: 50%;
+    border: 2px solid var(--gold);
+    display:flex; align-items:center; justify-content:center;
+    margin: 4px auto 18px;
+    position: relative;
+    animation: spin-in 0.6s ease;
+  }
+  .seal::before{
+    content:"";
+    position:absolute; inset: 6px;
+    border: 1px dashed var(--gold);
+    border-radius: 50%;
+  }
+  .seal-text{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--gold);
+    text-align:center;
+    letter-spacing: 0.08em;
+  }
+  @keyframes spin-in{
+    from{ transform: rotate(-25deg) scale(0.7); opacity:0; }
+    to{ transform: rotate(0) scale(1); opacity:1; }
+  }
+
+  .result-eyebrow{
+    text-align:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  #breed-name{
+    font-family:'Bebas Neue', sans-serif;
+    font-size: 50px;
+    text-align:center;
+    line-height: 0.95;
+    margin: 0 0 4px;
+    color: var(--paper);
+  }
+  #breed-tag{
+    text-align:center;
+    color: var(--gold);
+    font-size: 14px;
+    font-style: italic;
+    margin: 0 0 20px;
+  }
+  #breed-desc{
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--paper);
+    margin: 0 0 22px;
+  }
+
+  .field-block{
+    border-top: 1px dashed var(--card-line);
+    padding-top: 16px;
+    margin-bottom: 18px;
+  }
+  .field-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .stat-row{ display:flex; align-items:center; gap: 10px; margin-bottom: 8px; }
+  .stat-name{ width: 92px; font-size: 12px; color: var(--paper); flex-shrink:0; }
+  .stat-bar{ flex:1; height: 6px; background: rgba(240,233,220,0.08); border-radius: 3px; overflow:hidden; }
+  .stat-fill{ height:100%; background: linear-gradient(90deg, var(--green), var(--gold)); border-radius:3px; width:0%; transition: width 0.6s ease; }
+
+  .duo-row{ display:flex; gap: 14px; flex-wrap: wrap; }
+  .duo-card{
+    flex: 1 1 220px;
+    background: rgba(240,233,220,0.03);
+    border: 1px solid var(--card-line);
+    border-radius: 3px;
+    padding: 12px 14px;
+  }
+  .duo-card .h{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .duo-card.good .h{ color: var(--gold); }
+  .duo-card.watch .h{ color: var(--crimson); }
+  .duo-card p{ margin:0; font-size: 13px; line-height: 1.5; color: var(--muted); }
+
+  .runner-up{
+    margin-top: 4px;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  .runner-up b{ color: var(--paper); }
+
+  .result-actions{
+    display:flex; gap: 10px; margin-top: 26px; flex-wrap: wrap;
+  }
+
+  footer.foot{
+    border-top: 1px dashed var(--card-line);
+    padding: 12px 20px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    display:flex; justify-content:space-between;
+  }
+
+  @media (max-width: 480px){
+    #intro h1{ font-size: 42px; }
+    #breed-name{ font-size: 40px; }
+    #q-text{ font-size: 25px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+  <header class="topbar">
+    <span class="eyebrow">Canine Temperament Diagnostic</span>
+    <span class="case-no mono" id="case-no">FILE NO. ——</span>
+  </header>
+
+  <div class="content">
+
+    <!-- INTRO -->
+    <section id="intro">
+      <div class="eyebrow" style="margin-bottom:8px;">Field Guide to Human Behavior</div>
+      <h1>WHAT<br>BREED<br>ARE <span>YOU?</span></h1>
+      <p class="sub">You've seen the golden retriever boyfriend discourse. This is the full taxonomy. Ten questions, eight possible diagnoses, zero flattering exits — this is a temperament read, not a compliment machine.</p>
+      <div class="breed-strip">
+        <span class="breed-chip">Golden Retriever</span>
+        <span class="breed-chip">Rottweiler</span>
+        <span class="breed-chip">German Shepherd</span>
+        <span class="breed-chip">Husky</span>
+        <span class="breed-chip">Chihuahua</span>
+        <span class="breed-chip">Doberman</span>
+        <span class="breed-chip">Border Collie</span>
+        <span class="breed-chip">Corgi</span>
+      </div>
+      <button class="btn" onclick="startQuiz()">Begin Diagnostic →</button>
+    </section>
+
+    <!-- QUIZ -->
+    <section id="quiz">
+      <div class="progress-row">
+        <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+        <span class="progress-count mono" id="progress-count">01 / 10</span>
+      </div>
+      <div class="q-tag" id="q-tag">QUESTION 01</div>
+      <h2 id="q-text"></h2>
+      <div class="options" id="options"></div>
+      <div class="nav-row">
+        <button class="back-link" id="back-btn" onclick="goBack()">← back</button>
+        <span></span>
+      </div>
+    </section>
+
+    <!-- RESULTS -->
+    <section id="results">
+      <div class="seal"><div class="seal-text">CERTIFIED<br>TEMPERAMENT<br>MATCH</div></div>
+      <div class="result-eyebrow">Diagnosis complete</div>
+      <h2 id="breed-name"></h2>
+      <p id="breed-tag"></p>
+      <p id="breed-desc"></p>
+
+      <div class="field-block">
+        <div class="field-label">Behavioral profile</div>
+        <div id="stat-rows"></div>
+      </div>
+
+      <div class="field-block duo-row">
+        <div class="duo-card good">
+          <div class="h">Pairs well with</div>
+          <p id="pair-good"></p>
+        </div>
+        <div class="duo-card watch">
+          <div class="h">Watch for</div>
+          <p id="pair-watch"></p>
+        </div>
+      </div>
+
+      <div class="field-block" style="border-bottom:none; margin-bottom:0;">
+        <div class="field-label">Runner-up breed</div>
+        <p class="runner-up" id="runner-up"></p>
+      </div>
+
+      <div class="result-actions">
+        <button class="btn" onclick="retake()">Run Again</button>
+        <button class="btn ghost small" onclick="copyResult()" id="copy-btn">Copy Result</button>
+      </div>
+    </section>
+
+  </div>
+
+  <footer class="foot">
+    <span>NOT A VETERINARY DOCUMENT</span>
+    <span id="foot-progress">v1.0</span>
+  </footer>
+</div>
+
+<script>
+const questions = [
+  {
+    q: "Your ideal Friday night?",
+    options: [
+      ["Whoever's around, wherever it ends up — the more people the better", "golden"],
+      ["One friend, no plan, we'll figure it out and it'll go sideways", "husky"],
+      ["Small trusted circle, nobody I don't already vouch for", "rottweiler"],
+      ["Alone, then maybe I show up somewhere and surprise everyone", "doberman"],
+      ["I'm running the plan — reservations, timing, all of it", "border_collie"],
+      ["Couch, snacks, something dumb on in the background", "corgi"],
+      ["One person, deep conversation, phones away", "german_shepherd"],
+      ["Somewhere nice, guest list of two, high standards", "chihuahua"]
+    ]
+  },
+  {
+    q: "How do you actually handle conflict?",
+    options: [
+      ["Smooth it over fast — I hate when people are upset with me", "golden"],
+      ["I say the thing immediately, loudly, and I don't feel bad about it", "chihuahua"],
+      ["I go quiet, plan my exit, and deal with it on my own time", "doberman"],
+      ["I confront it head-on if someone I care about got hurt", "rottweiler"],
+      ["I read the room first, then act with precision", "german_shepherd"],
+      ["I need it resolved immediately or I can't think about anything else", "border_collie"],
+      ["I make a joke and hope it dissolves on its own", "corgi"],
+      ["I get distracted and somehow the conflict just isn't my problem anymore", "husky"]
+    ]
+  },
+  {
+    q: "Your love language, functionally speaking",
+    options: [
+      ["Constant affection, gassing you up, showing up with zero prompting", "golden"],
+      ["Fierce, obvious loyalty — I will end someone for you", "rottweiler"],
+      ["Reliability. I do what I say. Every time. That's the love", "german_shepherd"],
+      ["Dragging you into whatever chaos I've cooked up this week", "husky"],
+      ["You get all my attention. Everyone else gets none", "chihuahua"],
+      ["Quiet, rare, real gestures — I'm not loud about it", "doberman"],
+      ["I organize your life whether you asked me to or not", "border_collie"],
+      ["I make you laugh until you forget what you were upset about", "corgi"]
+    ]
+  },
+  {
+    q: "At a party where you know nobody...",
+    options: [
+      ["I've met everyone in the room within ten minutes", "golden"],
+      ["I find the host and start helping them run the thing", "border_collie"],
+      ["I pick one person, decide if they're worth my time, ignore the rest", "chihuahua"],
+      ["I stand near the exit, observe, leave when it stops being useful", "doberman"],
+      ["I wander off and find something more interesting than the party", "husky"],
+      ["I stay glued to whoever I came with", "rottweiler"],
+      ["I scan the room, meet a few key people, skip the small talk", "german_shepherd"],
+      ["I make the awkward small talk into a bit until people are laughing", "corgi"]
+    ]
+  },
+  {
+    q: "Your actual work style, no LinkedIn spin",
+    options: [
+      ["Say yes to everything, figure out the how later", "golden"],
+      ["I need a task at all times or I start spiraling", "border_collie"],
+      ["Precise, focused, don't need anyone checking in on me", "doberman"],
+      ["Brilliant in bursts, then I go dark for a while", "husky"],
+      ["High standards. I will tell you exactly what's wrong with it", "chihuahua"],
+      ["Dependable and methodical — mission first, always", "german_shepherd"],
+      ["I'll defend the team against a bad idea before I defend my own ego", "rottweiler"],
+      ["Gets done, with jokes the entire way through", "corgi"]
+    ]
+  },
+  {
+    q: "How people who actually know you would describe you",
+    options: [
+      ["\"The nicest person I've ever met\"", "golden"],
+      ["\"Intense, but once you're in, you're in for life\"", "rottweiler"],
+      ["\"The responsible one. Always has been\"", "german_shepherd"],
+      ["\"Unpredictable — in a way I've come to need\"", "husky"],
+      ["\"Small, but will absolutely end you\"", "chihuahua"],
+      ["\"Hard to read at first. Worth the effort\"", "doberman"],
+      ["\"Always three steps ahead with a plan\"", "border_collie"],
+      ["\"The funny one — the glue, honestly\"", "corgi"]
+    ]
+  },
+  {
+    q: "Your biggest flaw, said out loud",
+    options: [
+      ["I say yes too much and end up resenting it later", "golden"],
+      ["When my protective instinct fires, I don't de-escalate well", "rottweiler"],
+      ["I stay guarded even with people who've earned better", "german_shepherd"],
+      ["I get bored and disappear before things are finished", "husky"],
+      ["I overreact and I hold the grudge longer than the offense deserves", "chihuahua"],
+      ["I close off so hard people think I don't care. I do", "doberman"],
+      ["I can't relax. Genuinely can't. It's a problem", "border_collie"],
+      ["I joke my way out of ever being vulnerable", "corgi"]
+    ]
+  },
+  {
+    q: "A stranger is rude to someone you're with. You...",
+    options: [
+      ["Step in immediately. Full stop. No internal debate", "rottweiler"],
+      ["Assess for two seconds, then act if it's actually warranted", "german_shepherd"],
+      ["Try to defuse it with kindness before it escalates", "golden"],
+      ["Say one cutting sentence, loudly, and don't apologize for it", "chihuahua"],
+      ["One quiet sentence. Stranger reconsiders their life choices. Done", "doberman"],
+      ["Somehow miss the entire thing", "husky"],
+      ["Skip the confrontation, get everyone out and handle it logistically", "border_collie"],
+      ["Crack a joke to break the tension before it becomes a Thing", "corgi"]
+    ]
+  },
+  {
+    q: "Your actual ideal vacation",
+    options: [
+      ["Big group trip. Beach. Everyone I love, all in one place", "golden"],
+      ["Zero itinerary. Wherever the week decides to take us", "husky"],
+      ["Solo. Remote. Nobody has my number", "doberman"],
+      ["Small guest list, high standards, does not compromise on quality", "chihuahua"],
+      ["Fully planned itinerary, hour by hour, and yes I made the doc", "border_collie"],
+      ["Somewhere with a purpose — visiting family, a reason to go", "german_shepherd"],
+      ["Just me and one other person. Off the grid. That's it", "rottweiler"],
+      ["Theme park. Maximum fun. Zero cultural obligations", "corgi"]
+    ]
+  },
+  {
+    q: "How you actually recharge",
+    options: [
+      ["Being around people — the more the better", "golden"],
+      ["Being around my one person and nobody else", "chihuahua"],
+      ["No schedule, no plan, total unpredictability", "husky"],
+      ["Total, uninterrupted solitude", "doberman"],
+      ["Crossing things off a list. That's rest to me", "border_collie"],
+      ["Routine. Structure. The same coffee at the same time", "german_shepherd"],
+      ["Guarding my own peace, low input, minimal noise", "rottweiler"],
+      ["Comfort show, comfort food, zero effort required", "corgi"]
+    ]
+  }
+];
+
+const breeds = {
+  golden: {
+    name: "Golden Retriever",
+    tag: "Green flag energy, sunny by default",
+    desc: "You lead with warmth because it's genuinely who you are, not a performance. You're the one who lights up when your people walk in the room, says the kind thing first, and shows up without being asked twice. The internet built an entire boyfriend taxonomy around this exact temperament for a reason — it reads as rare.",
+    stats: {Loyalty: 90, Independence: 30, Guardedness: 15, Chaos: 25, Intensity: 20},
+    good: "Pairs well with someone more reserved who can match your output without needing the same volume — you'll do the chasing, they'll do the anchoring.",
+    watch: "Eagerness to please can slide into people-pleasing fast. Not everyone deserves the effort you give by default."
+  },
+  rottweiler: {
+    name: "Rottweiler",
+    tag: "Standoffish exterior, soft interior, earned only",
+    desc: "You don't perform friendliness for strangers and you're not going to start. Your circle is small and vetted, but once someone's in, you go to the mat for them without hesitation. People who need a warm introduction find you cold. People who've actually seen you defend someone know better.",
+    stats: {Loyalty: 95, Independence: 60, Guardedness: 80, Chaos: 15, Intensity: 75},
+    good: "Pairs well with people-pleasers who've been burned before — you make them feel safe precisely because you're selective about who gets in.",
+    watch: "Protectiveness has a ceiling before it reads as possessiveness. Know where yours is."
+  },
+  german_shepherd: {
+    name: "German Shepherd",
+    tag: "The steady middle ground",
+    desc: "You're not the friendliest person in the room and you're not the coldest — you're the one who's actually dependable, which turns out to matter more. Smart, protective without being unfriendly about it, and the person people quietly rely on without saying so out loud.",
+    stats: {Loyalty: 88, Independence: 55, Guardedness: 55, Chaos: 10, Intensity: 50},
+    good: "Pairs well with anyone who values consistency over fireworks — you're playing a long game, not a first-impression one.",
+    watch: "Guardedness that never lowers just becomes distance. Even earned trust needs to be acted on eventually."
+  },
+  husky: {
+    name: "Husky",
+    tag: "High-maintenance, high-reward chaos",
+    desc: "Wild roots, questionable impulse control, and a genuine allergy to routine. You're the friend whose plans change three times before the night actually happens, and somehow it's still the best night anyone had that week. Pack-oriented, but picky about the pack.",
+    stats: {Loyalty: 70, Independence: 65, Guardedness: 20, Chaos: 90, Intensity: 55},
+    good: "Pairs well with someone who finds your unpredictability charming instead of exhausting — and who won't try to schedule you.",
+    watch: "Constant stimulation-seeking reads as unreliability to people who need consistency. You'll lose some good ones to this."
+  },
+  chihuahua: {
+    name: "Chihuahua",
+    tag: "Small package, zero patience for nonsense",
+    desc: "Big personality, exacting standards, and an intense loyalty that's reserved for exactly one or two people at a time. You will not perform friendliness for people who haven't earned it, and you will absolutely say something about it if the bar isn't met.",
+    stats: {Loyalty: 85, Independence: 50, Guardedness: 70, Chaos: 35, Intensity: 80},
+    good: "Pairs well with someone secure enough not to take the sharp edges personally — underneath it is real, exclusive devotion.",
+    watch: "The grudge-holding and the overreacting are the same instinct pointed at the wrong target more often than you'd admit."
+  },
+  doberman: {
+    name: "Doberman",
+    tag: "Guarded exterior, complete devotion once earned",
+    desc: "You read as intimidating before anyone actually gets to know you, and that's mostly by design. Low tolerance for small talk, minimal interest in performing warmth for an audience — but the few people who earn real access get a loyalty most people never experience from anyone.",
+    stats: {Loyalty: 80, Independence: 85, Guardedness: 90, Chaos: 10, Intensity: 70},
+    good: "Pairs well with someone patient enough to sit with the silence instead of mistaking it for disinterest.",
+    watch: "The guard never coming down is indistinguishable from nobody being let in at all. Trust has to open eventually."
+  },
+  border_collie: {
+    name: "Border Collie",
+    tag: "Cannot sit still, will herd you if you let it",
+    desc: "You need a project the way other people need sleep. Left without a task you start organizing something anyway — the group chat, someone else's week, your own relaxation schedule. Genuinely brilliant, genuinely can't turn it off.",
+    stats: {Loyalty: 75, Independence: 45, Guardedness: 35, Chaos: 20, Intensity: 65},
+    good: "Pairs well with someone who lets you plan without resenting it — and who occasionally forces you to do nothing.",
+    watch: "Rest isn't a task to complete. If you can't enjoy something without optimizing it, that's the actual problem to solve."
+  },
+  corgi: {
+    name: "Corgi",
+    tag: "Low drama, high comedy, the glue",
+    desc: "You're the reason the group chat doesn't fall apart. Easy to be around, quick with a joke, allergic to conflict — and quietly using the humor as a very effective wall so nobody looks too closely at what's underneath it.",
+    stats: {Loyalty: 82, Independence: 40, Guardedness: 45, Chaos: 40, Intensity: 30},
+    good: "Pairs well with someone who can call the deflection out gently and still make you feel safe enough to drop it.",
+    watch: "A joke instead of a real answer, every single time, stops being funny to the people who actually want to know you."
+  }
+};
+
+let current = 0;
+let answers = [];
+let scores = {};
+
+function startQuiz(){
+  document.getElementById('intro').style.display = 'none';
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('quiz').style.display = 'block';
+  current = 0;
+  answers = [];
+  document.getElementById('case-no').textContent = 'FILE NO. ' + Math.floor(1000 + Math.random()*8999);
+  renderQuestion();
+}
+
+function renderQuestion(){
+  const total = questions.length;
+  const item = questions[current];
+  document.getElementById('q-tag').textContent = 'QUESTION ' + String(current+1).padStart(2,'0');
+  document.getElementById('progress-count').textContent = String(current+1).padStart(2,'0') + ' / ' + String(total).padStart(2,'0');
+  document.getElementById('progress-fill').style.width = ((current)/total*100) + '%';
+  document.getElementById('q-text').textContent = item.q;
+  document.getElementById('back-btn').disabled = current === 0;
+
+  const optWrap = document.getElementById('options');
+  optWrap.innerHTML = '';
+  const letters = ['A','B','C','D','E','F','G','H'];
+  item.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option';
+    btn.innerHTML = '<span class="k">' + letters[i] + '</span><span>' + opt[0] + '</span>';
+    btn.onclick = () => selectAnswer(opt[1]);
+    optWrap.appendChild(btn);
+  });
+}
+
+function selectAnswer(breedKey){
+  answers[current] = breedKey;
+  current++;
+  if(current < questions.length){
+    renderQuestion();
+  } else {
+    showResults();
+  }
+}
+
+function goBack(){
+  if(current > 0){
+    current--;
+    renderQuestion();
+  }
+}
+
+function computeScores(){
+  scores = {golden:0, rottweiler:0, german_shepherd:0, husky:0, chihuahua:0, doberman:0, border_collie:0, corgi:0};
+  answers.forEach(a => { if(a) scores[a]++; });
+}
+
+function showResults(){
+  computeScores();
+  document.getElementById('quiz').style.display = 'none';
+  document.getElementById('progress-fill').style.width = '100%';
+
+  const ranked = Object.entries(scores).sort((a,b) => b[1]-a[1]);
+  const topKey = ranked[0][0];
+  const runnerKey = ranked[1][0];
+  const breed = breeds[topKey];
+  const runner = breeds[runnerKey];
+
+  document.getElementById('breed-name').textContent = breed.name.toUpperCase();
+  document.getElementById('breed-tag').textContent = breed.tag;
+  document.getElementById('breed-desc').textContent = breed.desc;
+  document.getElementById('pair-good').textContent = breed.good;
+  document.getElementById('pair-watch').textContent = breed.watch;
+  document.getElementById('runner-up').innerHTML = 'Second-closest match: <b>' + runner.name + '</b> — worth reading if this result feels 80% right instead of 100%.';
+
+  const statWrap = document.getElementById('stat-rows');
+  statWrap.innerHTML = '';
+  Object.entries(breed.stats).forEach(([label, val]) => {
+    const row = document.createElement('div');
+    row.className = 'stat-row';
+    row.innerHTML = '<span class="stat-name">'+label+'</span><div class="stat-bar"><div class="stat-fill" style="width:0%" data-val="'+val+'"></div></div>';
+    statWrap.appendChild(row);
+  });
+
+  document.getElementById('results').style.display = 'block';
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.stat-fill').forEach(el => {
+      el.style.width = el.getAttribute('data-val') + '%';
+    });
+  });
+
+  window.__lastResult = breed.name;
+}
+
+function retake(){
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('intro').style.display = 'block';
+  document.getElementById('progress-fill').style.width = '0%';
+}
+
+function copyResult(){
+  const text = "I'm a " + window.__lastResult + ", certified via the Canine Temperament Diagnostic.";
+  const btn = document.getElementById('copy-btn');
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(() => {
+      const original = btn.textContent;
+      btn.textContent = 'Copied ✓';
+      setTimeout(() => { btn.textContent = original; }, 1500);
+    }).catch(() => { btn.textContent = 'Copy failed'; });
+  }
+}
+</script>
+
+</body>
+</html>
